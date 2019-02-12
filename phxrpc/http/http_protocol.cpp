@@ -203,7 +203,7 @@ int HttpProtocol::RecvRespStartLine(BaseTcpStream &socket, HttpResponse *resp) {
     }
 }
 
-int HttpProtocol::RecvReqStartLine(BaseTcpStream &socket, HttpRequest *req) {
+int HttpProtocol::RecvReqStartLine(BaseTcpStream &socket, HttpRequest &req) {
     char line[1024]{0};
 
     bool is_good = socket.getlineWithTrimRight(line, sizeof(line)).good();
@@ -213,11 +213,11 @@ int HttpProtocol::RecvReqStartLine(BaseTcpStream &socket, HttpRequest *req) {
         char *second = SeparateStr(&pos, " ");
 
         if (nullptr != first)
-            req->set_method(first);
+            req.set_method(first);
         if (nullptr != second)
-            req->set_uri(second);
+            req.set_uri(second);
         if (nullptr != pos)
-            req->set_version(pos);
+            req.set_version(pos);
     } else {
         //phxrpc::log(LOG_WARNING, "WARN: Invalid request <%s>, ignored", line);
     }
@@ -229,7 +229,7 @@ int HttpProtocol::RecvReqStartLine(BaseTcpStream &socket, HttpRequest *req) {
     }
 }
 
-int HttpProtocol::RecvHeaders(BaseTcpStream &socket, HttpMessage *msg) {
+int HttpProtocol::RecvHeaders(BaseTcpStream &socket, HttpMessage &msg) {
     bool is_good{false};
 
     char *line = (char *)malloc(MAX_RECV_LEN);
@@ -250,7 +250,7 @@ int HttpProtocol::RecvHeaders(BaseTcpStream &socket, HttpMessage *msg) {
                 SeparateStr(&pos, ":");
                 for (; nullptr != pos && '\0' != *pos && isspace(*pos);)
                     pos++;
-                msg->AddHeader(header, nullptr == pos ? "" : pos);
+                msg.AddHeader(header, nullptr == pos ? "" : pos);
             }
             multi_line.clear();
         }
@@ -271,10 +271,10 @@ int HttpProtocol::RecvHeaders(BaseTcpStream &socket, HttpMessage *msg) {
     }
 }
 
-int HttpProtocol::RecvBody(BaseTcpStream &socket, HttpMessage *msg) {
+int HttpProtocol::RecvBody(BaseTcpStream &socket, HttpMessage &msg) {
     bool is_good{true};
 
-    const char *encoding{msg->GetHeaderValue(HttpMessage::HEADER_TRANSFER_ENCODING)};
+    const char *encoding{msg.GetHeaderValue(HttpMessage::HEADER_TRANSFER_ENCODING)};
 
     char *buff{(char *)malloc(MAX_RECV_LEN)};
     assert(nullptr != buff);
@@ -294,7 +294,7 @@ int HttpProtocol::RecvBody(BaseTcpStream &socket, HttpMessage *msg) {
                     is_good = socket.read(buff, read_len).good();
                     if (is_good) {
                         size -= read_len;
-                        msg->AppendContent(buff, read_len);
+                        msg.AppendContent(buff, read_len);
                     } else {
                         break;
                     }
@@ -305,7 +305,7 @@ int HttpProtocol::RecvBody(BaseTcpStream &socket, HttpMessage *msg) {
             }
         }
     } else {
-        const char *content_length{msg->GetHeaderValue(HttpMessage::HEADER_CONTENT_LENGTH)};
+        const char *content_length{msg.GetHeaderValue(HttpMessage::HEADER_CONTENT_LENGTH)};
 
         if (nullptr != content_length) {
             int size{atoi(content_length)};
@@ -315,17 +315,17 @@ int HttpProtocol::RecvBody(BaseTcpStream &socket, HttpMessage *msg) {
                 is_good = socket.read(buff, read_len).good();
                 if (is_good) {
                     size -= read_len;
-                    msg->AppendContent(buff, read_len);
+                    msg.AppendContent(buff, read_len);
                 } else {
                     break;
                 }
             }
-        } else if (HttpMessage::Direction::RESPONSE == msg->direction()) {
+        } else if (HttpMessage::Direction::RESPONSE == msg.direction()) {
             // hasn't Content-Length header, read until socket close
             for (; is_good;) {
                 is_good = socket.read(buff, MAX_RECV_LEN).good();
                 if (socket.gcount() > 0) {
-                    msg->AppendContent(buff, socket.gcount());
+                    msg.AppendContent(buff, socket.gcount());
                 }
             }
             if (socket.eof())
@@ -342,8 +342,8 @@ int HttpProtocol::RecvBody(BaseTcpStream &socket, HttpMessage *msg) {
     }
 }
 
-int HttpProtocol::RecvReq(BaseTcpStream &socket, HttpRequest *req) {
-    int ret{RecvReqStartLine(socket, req)};
+int HttpProtocol::RecvReq(BaseTcpStream &socket, HttpRequest &req) {
+    int ret = RecvReqStartLine(socket, req);
 
     if (0 == ret)
         ret = RecvHeaders(socket, req);
@@ -357,10 +357,10 @@ int HttpProtocol::RecvReq(BaseTcpStream &socket, HttpRequest *req) {
 int HttpProtocol::RecvResp(BaseTcpStream &socket, HttpResponse *resp) {
     int ret{RecvRespStartLine(socket, resp)};
     if (0 == ret)
-        ret = RecvHeaders(socket, resp);
+        ret = RecvHeaders(socket, *resp);
 
     if (0 == ret && SC_NOT_MODIFIED != resp->status_code()) {
-        ret = RecvBody(socket, resp);
+        ret = RecvBody(socket, *resp);
     }
 
     return ret;

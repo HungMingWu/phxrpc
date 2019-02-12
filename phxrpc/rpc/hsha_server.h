@@ -262,7 +262,7 @@ class WorkerPool final {
     HshaServerStat *hsha_server_stat_{nullptr};
     Dispatch_t dispatch_;
     void *args_{nullptr};
-    std::vector<Worker *> worker_list_;
+    std::vector<std::unique_ptr<Worker>> worker_list_;
     size_t last_notify_idx_;
     std::mutex mutex_;
 };
@@ -336,14 +336,14 @@ class HshaServerAcceptor final {
 };
 
 
-class HshaServer {
+class HshaServer final {
   public:
     HshaServer(const HshaServerConfig &config, const Dispatch_t &dispatch, void *args,
                phxrpc::BaseMessageHandlerFactoryCreateFunc msg_handler_factory_create_func =
                []()->std::unique_ptr<phxrpc::HttpMessageHandlerFactory> {
         return std::unique_ptr<phxrpc::HttpMessageHandlerFactory>(new phxrpc::HttpMessageHandlerFactory);
     });
-    virtual ~HshaServer();
+    ~HshaServer() = default;
 
     void RunForever();
 
@@ -358,7 +358,7 @@ class HshaServer {
     HshaServerQos hsha_server_qos_;
     HshaServerAcceptor hsha_server_acceptor_;
 
-    std::vector<HshaServerUnit *> server_unit_list_;
+    std::vector<std::unique_ptr<HshaServerUnit>> server_unit_list_;
 
     void LoopReadCrossUnitResponse();
 };

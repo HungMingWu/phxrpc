@@ -33,16 +33,13 @@ class BaseMessageHandler {
     BaseMessageHandler() = default;
     virtual ~BaseMessageHandler() = default;
 
-    virtual int RecvRequest(BaseTcpStream &socket, BaseRequest *&req) = 0;
+    virtual std::unique_ptr<BaseRequest> RecvRequest(BaseTcpStream &socket) = 0;
     virtual int RecvResponse(BaseTcpStream &socket, BaseResponse *&resp) = 0;
 
     virtual int GenRequest(BaseRequest *&req) = 0;
-    virtual int GenResponse(BaseResponse *&resp) = 0;
+    virtual int GenResponse(BaseRequest &req, BaseResponse *&resp) = 0;
 
     virtual bool keep_alive() const = 0;
-
-  protected:
-    BaseRequest *req_{nullptr};
 };
 
 

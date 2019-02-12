@@ -43,9 +43,9 @@ int HttpClient::Get(BaseTcpStream &socket, const HttpRequest &req, HttpResponse 
     if (0 == ret) {
         ret = HttpProtocol::RecvRespStartLine(socket, resp);
         if (0 == ret)
-            ret = HttpProtocol::RecvHeaders(socket, resp);
+            ret = HttpProtocol::RecvHeaders(socket, *resp);
         if (0 == ret && SC_NOT_MODIFIED != resp->status_code()) {
-            ret = HttpProtocol::RecvBody(socket, resp);
+            ret = HttpProtocol::RecvBody(socket, *resp);
         }
     }
 
@@ -77,10 +77,10 @@ int HttpClient::Post(BaseTcpStream &socket, const HttpRequest &req, HttpResponse
     if (0 == ret) {
         ret = HttpProtocol::RecvRespStartLine(socket, resp);
         if (0 == ret)
-            ret = HttpProtocol::RecvHeaders(socket, resp);
+            ret = HttpProtocol::RecvHeaders(socket, *resp);
 
         if (0 == ret && SC_NOT_MODIFIED != resp->status_code()) {
-            ret = HttpProtocol::RecvBody(socket, resp);
+            ret = HttpProtocol::RecvBody(socket, *resp);
         }
 
         if (0 != ret && SocketStreamError_Normal_Closed != ret) {
@@ -103,7 +103,7 @@ int HttpClient::Head(BaseTcpStream & socket, const HttpRequest &req, HttpRespons
         ret = HttpProtocol::RecvRespStartLine(socket, resp);
 
     if (0 == ret)
-        ret = HttpProtocol::RecvHeaders(socket, resp);
+        ret = HttpProtocol::RecvHeaders(socket, *resp);
 
     return static_cast<int>(ret);
 }

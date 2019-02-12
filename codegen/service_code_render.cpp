@@ -326,7 +326,7 @@ void ServiceCodeRender::GenerateDispatcherHpp(SyntaxTree *stree, FILE *write) {
     fprintf(write, "class %s {\n", dispatcher_name);
 
     fprintf(write, "  public:\n");
-    fprintf(write, "    static const phxrpc::BaseDispatcher<%s>::URIFuncMap &GetURIFuncMap();\n", dispatcher_name);
+    fprintf(write, "    phxrpc::BaseDispatcher::URIFuncMap GetURIFuncMap();\n");
     fprintf(write, "\n");
 
     fprintf(write, "    %s(%s &service, phxrpc::DispatcherArgs_t *dispatcher_args);\n", dispatcher_name, service_name);
@@ -413,11 +413,9 @@ void ServiceCodeRender::GenerateURIFuncMap(SyntaxTree *stree, FILE *write) {
     char dispatcher_name[128]{'\0'};
     name_render_.GetDispatcherClassName(stree->GetName(), dispatcher_name, sizeof(dispatcher_name));
 
-    fprintf(write, "const phxrpc::BaseDispatcher<%s>::URIFuncMap &%s::GetURIFuncMap() {\n",
-            dispatcher_name, dispatcher_name);
+    fprintf(write, "phxrpc::BaseDispatcher::URIFuncMap %s::GetURIFuncMap() {\n", dispatcher_name);
 
-    fprintf(write, "    static phxrpc::BaseDispatcher<%s>::URIFuncMap uri_func_map = {\n",
-            dispatcher_name);
+    fprintf(write, "    return phxrpc::BaseDispatcher::URIFuncMap {\n");
 
     auto flist(stree->func_list());
     auto fit(flist->cbegin());
@@ -425,13 +423,11 @@ void ServiceCodeRender::GenerateURIFuncMap(SyntaxTree *stree, FILE *write) {
         if (fit != flist->cbegin()) {
             fprintf(write, ",\n");
         }
-        fprintf(write, "        {\"/%s/%s\", &%s::%s}",
+        fprintf(write, "        {\"/%s/%s\", [this](auto&& ...params) { return %s\(std::forward<decltype(params)>(params)...); }}",
                 SyntaxTree::Pb2UriPackageName(stree->package_name()).c_str(),
-                fit->GetName(), dispatcher_name, fit->GetName());
+                fit->GetName(), fit->GetName());
     }
-    fprintf(write, "};\n");
-
-    fprintf(write, "    return uri_func_map;\n");
+    fprintf(write, "\n    };\n");
 
     fprintf(write, "}\n");
 }

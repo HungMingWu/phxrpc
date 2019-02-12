@@ -52,10 +52,10 @@ class HttpProtocol {
     static void FixRespHeaders(bool keep_alive, const char *version, HttpResponse *resp);
     static int SendReqHeader(BaseTcpStream &socket, const char *method, const HttpRequest &req);
     static int RecvRespStartLine(BaseTcpStream &socket, HttpResponse *resp);
-    static int RecvReqStartLine(BaseTcpStream &socket, HttpRequest *req);
-    static int RecvHeaders(BaseTcpStream &socket, HttpMessage *msg);
-    static int RecvBody(BaseTcpStream &socket, HttpMessage *msg);
-    static int RecvReq(BaseTcpStream &socket, HttpRequest *req);
+    static int RecvReqStartLine(BaseTcpStream &socket, HttpRequest &req);
+    static int RecvHeaders(BaseTcpStream &socket, HttpMessage &msg);
+    static int RecvBody(BaseTcpStream &socket, HttpMessage &msg);
+    static int RecvReq(BaseTcpStream &socket, HttpRequest &req);
     static int RecvResp(BaseTcpStream &socket, HttpResponse *resp);
 };
 

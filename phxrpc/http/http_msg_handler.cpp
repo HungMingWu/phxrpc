@@ -33,20 +33,17 @@ namespace phxrpc {
 using namespace std;
 
 
-int HttpMessageHandler::RecvRequest(BaseTcpStream &socket, BaseRequest *&req) {
-    HttpRequest *http_req{new HttpRequest};
+std::unique_ptr<BaseRequest> HttpMessageHandler::RecvRequest(BaseTcpStream &socket) {
+    auto http_req = std::make_unique<HttpRequest>();
 
-    int ret{HttpProtocol::RecvReq(socket, http_req)};
+    int ret = HttpProtocol::RecvReq(socket, *http_req);
     if (0 == ret) {
-        req_ = req = http_req;
         version_ = (http_req->version() != nullptr ? http_req->version() : "");
         keep_alive_ = http_req->keep_alive();
-    } else {
-        delete http_req;
-        http_req = nullptr;
+        return http_req;
     }
 
-    return ret;
+    return nullptr;
 }
 
 int HttpMessageHandler::RecvResponse(BaseTcpStream &socket, BaseResponse *&resp) {
@@ -69,8 +66,8 @@ int HttpMessageHandler::GenRequest(BaseRequest *&req) {
     return 0;
 }
 
-int HttpMessageHandler::GenResponse(BaseResponse *&resp) {
-    resp = req_->GenResponse();
+int HttpMessageHandler::GenResponse(BaseRequest &req, BaseResponse *&resp) {
+    resp = req.GenResponse();
     resp->Modify(keep_alive_, version_);
 
     return 0;

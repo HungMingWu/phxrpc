@@ -38,11 +38,11 @@ class HttpMessageHandler : public BaseMessageHandler {
     HttpMessageHandler() = default;
     virtual ~HttpMessageHandler() override = default;
 
-    virtual int RecvRequest(BaseTcpStream &socket, BaseRequest *&req) override;
+    std::unique_ptr<BaseRequest> RecvRequest(BaseTcpStream &socket) override;
     virtual int RecvResponse(BaseTcpStream &socket, BaseResponse *&resp) override;
 
     virtual int GenRequest(BaseRequest *&req) override;
-    virtual int GenResponse(BaseResponse *&resp) override;
+    int GenResponse(BaseRequest &req, BaseResponse *&resp) override;
 
     virtual bool keep_alive() const override;
 

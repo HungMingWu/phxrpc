@@ -524,16 +524,13 @@ WorkerPool::WorkerPool(const int idx,
           data_flow_(data_flow), hsha_server_stat_(hsha_server_stat),
           dispatch_(dispatch), args_(args), last_notify_idx_(0) {
     for (int i{0}; i < thread_count; ++i) {
-        auto worker(new Worker(i, this, uthread_count_per_thread, uthread_stack_size));
-        assert(worker != nullptr);
-        worker_list_.push_back(worker);
+        worker_list_.emplace_back(std::make_unique<Worker>(i, this, uthread_count_per_thread, uthread_stack_size));
     }
 }
 
 WorkerPool::~WorkerPool() {
     for (auto &worker : worker_list_) {
         worker->Shutdown();
-        delete worker;
     }
 }
 
@@ -588,7 +585,7 @@ void HshaServerIO::IOFunc(int accepted_fd) {
     UThreadTcpStream stream;
     stream.Attach(socket);
     UThreadSetSocketTimeout(*socket, config_->GetSocketTimeoutMS());
-
+    int ret = 0;
     while (true) {
         HshaServerStat::TimeCost time_cost;
 
@@ -602,13 +599,8 @@ void HshaServerIO::IOFunc(int accepted_fd) {
         }
 
         // will be deleted by worker
-        BaseRequest *req{nullptr};
-        int ret{msg_handler->RecvRequest(stream, req)};
-        if (0 != ret) {
-            if (req) {
-                delete req;
-                req = nullptr;
-            }
+        std::unique_ptr<BaseRequest> req = msg_handler->RecvRequest(stream);
+        if (!req) {
             hsha_server_stat_->io_read_fails_++;
             hsha_server_stat_->rpc_time_costs_count_++;
             hsha_server_stat_->rpc_time_costs_ += time_cost.Cost();
@@ -618,15 +610,12 @@ void HshaServerIO::IOFunc(int accepted_fd) {
         }
         char client_ip[128]{'\0'};
         stream.GetRemoteHost(client_ip, sizeof(client_ip));
-        phxrpc::log(LOG_DEBUG, "%s RecvRequest ret %d client_ip %s", __func__,
-                    static_cast<int>(ret), client_ip);
 
         hsha_server_stat_->io_read_bytes_ += req->size();
 
         if (!data_flow_->CanPushRequest(config_->GetMaxQueueLength())) {
             if (req) {
-                delete req;
-                req = nullptr;
+                req.reset();
             }
             hsha_server_stat_->queue_full_rejected_after_accepted_fds_++;
             phxrpc::log(LOG_ERR, "%s overflow can't enqueue fd %d", __func__, accepted_fd);
@@ -637,8 +626,7 @@ void HshaServerIO::IOFunc(int accepted_fd) {
         if (!hsha_server_qos_->CanEnqueue()) {
             // fast reject don't cal rpc_time_cost;
             if (req) {
-                delete req;
-                req = nullptr;
+                req.reset();
             }
             hsha_server_stat_->enqueue_fast_rejects_++;
             log(LOG_ERR, "%s fast reject can't enqueue fd %d", __func__, accepted_fd);
@@ -648,7 +636,7 @@ void HshaServerIO::IOFunc(int accepted_fd) {
 
         // if have enqueue, request will be deleted after pop.
         hsha_server_stat_->inqueue_push_requests_++;
-        data_flow_->PushRequest(socket, req);
+        data_flow_->PushRequest(socket, req.release());
         // if is uthread worker mode, need notify.
         // req deleted by worker after this line
         worker_pool_->NotifyEpoll();
@@ -853,22 +841,13 @@ HshaServer::HshaServer(const HshaServerConfig &config, const Dispatch_t &dispatc
             worker_thread_count_per_io = worker_thread_count -
                     (worker_thread_count_per_io * (io_count - 1));
         }
-        auto hsha_server_unit =
-            new HshaServerUnit(i, this, (int)worker_thread_count_per_io,
+        server_unit_list_.emplace_back(std::make_unique<HshaServerUnit>(i, this, (int)worker_thread_count_per_io,
                     config.GetWorkerUThreadCount(), worker_uthread_stack_size,
-                    dispatch, args);
-        assert(hsha_server_unit != nullptr);
-        server_unit_list_.push_back(hsha_server_unit);
+                    dispatch, args));
     }
     printf("server already started, %zu io threads %zu workers\n", io_count, worker_thread_count);
     if (config.GetWorkerUThreadCount() > 0) {
         printf("server in uthread mode, %d uthread per worker\n", config.GetWorkerUThreadCount());
-    }
-}
-
-HshaServer::~HshaServer() {
-    for (auto &hsha_server_unit : server_unit_list_) {
-        delete hsha_server_unit;
     }
 }
 

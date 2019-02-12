@@ -30,25 +30,24 @@ See the AUTHORS file for names of contributors.
 namespace phxrpc {
 
 
-template <typename Dispatcher>
 class BaseDispatcher {
   public:
-    typedef int (Dispatcher::*URIFunc_t)(const BaseRequest &req, BaseResponse *const resp);
+    typedef std::function<int(const BaseRequest &req, BaseResponse *const resp)> URIFunc_t;
 
     typedef std::map<std::string, URIFunc_t> URIFuncMap;
 
-    BaseDispatcher(Dispatcher &dispatcher, const URIFuncMap &uri_func_map)
-            : dispatcher_(dispatcher), uri_func_map_(uri_func_map) {
+    BaseDispatcher(const URIFuncMap &uri_func_map)
+            : uri_func_map_(uri_func_map) {
     }
 
     virtual ~BaseDispatcher() = default;
 
     bool Dispatch(const BaseRequest &req, BaseResponse *const resp) {
         int ret{-1};
-        typename URIFuncMap::const_iterator iter(uri_func_map_.find(req.uri()));
+        auto iter = uri_func_map_.find(req.uri());
 
         if (uri_func_map_.end() != iter) {
-            ret = (dispatcher_.*iter->second)(req, resp);
+            ret = (iter->second)(req, resp);
         }
 
         resp->set_result(ret);
@@ -57,7 +56,6 @@ class BaseDispatcher {
     }
 
   private:
-    Dispatcher &dispatcher_;
     const URIFuncMap &uri_func_map_;
 };
 

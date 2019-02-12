@@ -16,7 +16,7 @@ LIB_RPC_OBJS = rpc/phxrpc.pb.o rpc/caller.o \
 		rpc/uthread_caller.o rpc/client_monitor.o rpc/server_monitor.o \
 		rpc/monitor_factory.o rpc/hsha_server.o rpc/server_base.o
 
-LIB_MSG_OBJS = msg/base_msg.o msg/base_msg_handler.o msg/base_msg_handler_factory.o
+LIB_MSG_OBJS = msg/base_msg.o
 
 
 LIB_COMM_OBJS = comm/assert.o

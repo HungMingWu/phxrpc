@@ -48,8 +48,8 @@ void Dispatch(const phxrpc::BaseRequest &req,
     $ServiceImplClass$ service(*service_args);
     $DispatcherClass$ dispatcher(service, args);
 
-    phxrpc::BaseDispatcher<$DispatcherClass$> base_dispatcher(
-            dispatcher, $DispatcherClass$::GetURIFuncMap());
+    phxrpc::BaseDispatcher base_dispatcher(
+            dispatcher.GetURIFuncMap());
     if (!base_dispatcher.Dispatch(req, resp)) {
         resp->SetFake(phxrpc::BaseResponse::FakeReason::DISPATCH_ERROR);
     }

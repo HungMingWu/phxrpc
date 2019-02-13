@@ -136,14 +136,9 @@ service Search {
 
 # sample
 ../codegen/phxrpc_pb2server -I ../ -I ../third_party/protobuf/include -f search.proto -d .
-../codegen/phxrpc_pb2server -I ../ -I ../third_party/protobuf/include -f search.proto -d . -u
 ```
 
-两种生成模式，区别在于`-u`参数。
-
-第一种生成默认的线程池worker模型。
-
-第二种`-u`参数指定生成uthread worker模型，也就是工作线程池里面每个线程里面运行着多个协程。
+生成默认的线程池worker模型。
 
 调用完工具后，在生成代码放置目录下执行`make`，即可生成全部的RPC相关代码。
 

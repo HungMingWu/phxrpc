@@ -56,7 +56,7 @@ void PrintHelp(const char * program) {
 
 void Proto2Server(const char *program, const char *pb_file,
                   const char *dir_path, const vector<string> &include_list,
-                  const string &mk_dir_path, const bool is_uthread_mode) {
+                  const string &mk_dir_path) {
     SyntaxTree syntax_tree;
     map<string, bool> parsed_file_map;
 
@@ -111,7 +111,7 @@ void Proto2Server(const char *program, const char *pb_file,
 
         if (0 != access(filename, F_OK)) {
             FILE *fp{fopen(filename, "w")};
-            code_render.GenerateServerMainCpp(&syntax_tree, fp, is_uthread_mode);
+            code_render.GenerateServerMainCpp(&syntax_tree, fp);
             fclose(fp);
 
             printf("\n%s: Build %s file ... done\n", program, filename);
@@ -127,7 +127,7 @@ void Proto2Server(const char *program, const char *pb_file,
 
         if (0 != access(filename, F_OK)) {
             FILE *fp{fopen(filename, "w")};
-            code_render.GenerateServerEtc(&syntax_tree, fp, is_uthread_mode);
+            code_render.GenerateServerEtc(&syntax_tree, fp);
             fclose(fp);
 
             printf("\n%s: Build %s file ... done\n", program, filename);
@@ -142,7 +142,7 @@ void Proto2Server(const char *program, const char *pb_file,
 
         if (0 != access(filename, F_OK)) {
             FILE *fp{fopen(filename, "w")};
-            code_render.GenerateMakefile(&syntax_tree, mk_dir_path, fp, is_uthread_mode);
+            code_render.GenerateMakefile(&syntax_tree, mk_dir_path, fp);
             fclose(fp);
 
             printf("\n%s: Build %s file ... done\n", program, filename);
@@ -161,7 +161,6 @@ int main(int argc, char **argv) {
     vector<string> include_list;
     char real_path[1024]{0};
     char *rp{nullptr};
-    bool is_uthread_mode{false};
 
     while (EOF != (c = getopt(argc, argv, "f:d:I:uv"))) {
         switch (c) {
@@ -176,9 +175,6 @@ int main(int argc, char **argv) {
                 if (rp != nullptr) {
                     include_list.push_back(rp);
                 }
-                break;
-            case 'u':
-                is_uthread_mode = true;
                 break;
             default:
                 PrintHelp(argv[0]);
@@ -216,7 +212,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    Proto2Server(argv[0], pb_file, path, include_list, mk_dir_path, is_uthread_mode);
+    Proto2Server(argv[0], pb_file, path, include_list, mk_dir_path);
 
     return 0;
 }

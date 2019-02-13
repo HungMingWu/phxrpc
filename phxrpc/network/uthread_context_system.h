@@ -37,7 +37,7 @@ public:
             UThreadDoneCallback_t callback, const bool need_stack_protect);
     ~UThreadContextSystem();
 
-    static UThreadContext * DoCreate(size_t stack_size, 
+    static std::unique_ptr<UThreadContext> DoCreate(size_t stack_size,
             UThreadFunc_t func, void * args, UThreadDoneCallback_t callback,
             const bool need_stack_protect);
 

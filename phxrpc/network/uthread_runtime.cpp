@@ -42,12 +42,6 @@ UThreadRuntime :: UThreadRuntime(size_t stack_size, const bool need_stack_protec
     }
 }
 
-UThreadRuntime :: ~UThreadRuntime() {
-    for (auto & context_slot : context_list_) {
-        delete context_slot.context;
-    }
-}
-
 int UThreadRuntime :: Create(UThreadFunc_t func, void * args) {
     if (func == nullptr) {
         return -2;
@@ -59,13 +53,10 @@ int UThreadRuntime :: Create(UThreadFunc_t func, void * args) {
         context_list_[index].context->Make(func, args);
     } else {
         index = context_list_.size();
-        auto new_context = UThreadContext::Create(stack_size_, func, args, 
+        context_list_.emplace_back(ContextSlot{UThreadContext::Create(stack_size_, func, args,
                 std::bind(&UThreadRuntime::UThreadDoneCallback, this),
-                need_stack_protect_);
-        assert(new_context != nullptr);
-        ContextSlot context_slot;
-        context_slot.context = new_context;
-        context_list_.push_back(context_slot);
+                need_stack_protect_)});
+
     }
 
     context_list_[index].next_done_item = -1;
@@ -76,7 +67,7 @@ int UThreadRuntime :: Create(UThreadFunc_t func, void * args) {
 
 void UThreadRuntime :: UThreadDoneCallback() {
     if (current_uthread_ != -1) {
-        ContextSlot & context_slot = context_list_[current_uthread_];
+        ContextSlot &context_slot = context_list_[current_uthread_];
         context_slot.next_done_item = first_done_item_;
         context_slot.status = UTHREAD_DONE;
         first_done_item_ = current_uthread_;
@@ -90,7 +81,7 @@ bool UThreadRuntime :: Resume(size_t index) {
         return false;
     }
 
-    auto context_slot = context_list_[index];
+    auto &context_slot = context_list_[index];
     if (context_slot.status == UTHREAD_SUSPEND) {
         current_uthread_ = index;
         context_slot.status = UTHREAD_RUNNING;
@@ -102,7 +93,7 @@ bool UThreadRuntime :: Resume(size_t index) {
 
 bool UThreadRuntime :: Yield() {
     if (current_uthread_ != -1) {
-        auto context_slot = context_list_[current_uthread_];
+        auto &context_slot = context_list_[current_uthread_];
         current_uthread_ = -1;
         context_slot.status = UTHREAD_SUSPEND;
         context_slot.context->Yield();

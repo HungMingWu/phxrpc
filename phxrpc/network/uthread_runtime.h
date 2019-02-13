@@ -24,6 +24,7 @@ See the AUTHORS file for names of contributors.
 #include <stdlib.h>
 #include <vector>
 #include <functional>
+#include <memory>
 #include "uthread_context_base.h"
 
 namespace phxrpc {
@@ -31,7 +32,7 @@ namespace phxrpc {
 class UThreadRuntime {
 public:
     UThreadRuntime(size_t stack_size, const bool need_stack_protect);
-    ~UThreadRuntime();
+    ~UThreadRuntime() = default;
 
     int Create(UThreadFunc_t func, void * args);
     int GetCurrUThread();
@@ -44,12 +45,8 @@ public:
 
 private:
     struct ContextSlot {
-        ContextSlot() {
-            context = nullptr;
-            next_done_item = -1;
-        }
-        UThreadContext * context;
-        int next_done_item;
+        std::unique_ptr<UThreadContext> context;
+        int next_done_item = -1;
         int status;
     };
 

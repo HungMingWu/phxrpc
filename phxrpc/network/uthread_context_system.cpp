@@ -37,10 +37,10 @@ UThreadContextSystem :: UThreadContextSystem(size_t stack_size, UThreadFunc_t fu
 UThreadContextSystem :: ~UThreadContextSystem() {
 }
 
-UThreadContext * UThreadContextSystem :: DoCreate(size_t stack_size, 
+std::unique_ptr<UThreadContext> UThreadContextSystem :: DoCreate(size_t stack_size,
         UThreadFunc_t func, void * args, UThreadDoneCallback_t callback,
         const bool need_stack_protect) {
-    return new UThreadContextSystem(stack_size, func, args, callback, need_stack_protect);
+    return std::make_unique<UThreadContextSystem>(stack_size, func, args, callback, need_stack_protect);
 }
 
 void UThreadContextSystem :: Make(UThreadFunc_t func, void * args) {

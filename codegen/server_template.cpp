@@ -39,22 +39,6 @@ const char *PHXRPC_EPOLL_SERVER_MAIN_TEMPLATE =
 
 using namespace std;
 
-
-void Dispatch(const phxrpc::BaseRequest &req,
-              phxrpc::BaseResponse *const resp,
-              phxrpc::DispatcherArgs_t *const args) {
-    ServiceArgs_t *service_args{(ServiceArgs_t *)(args->service_args)};
-
-    $ServiceImplClass$ service(*service_args);
-    $DispatcherClass$ dispatcher(service, args);
-
-    phxrpc::BaseDispatcher base_dispatcher(
-            dispatcher.GetURIFuncMap());
-    if (!base_dispatcher.Dispatch(req, resp)) {
-        resp->SetFake(phxrpc::BaseResponse::FakeReason::DISPATCH_ERROR);
-    }
-}
-
 void ShowUsage(const char *program) {
     printf("\n");
     printf("Usage: %s [-c <config>] [-d] [-l <log level>] [-v]\n", program);
@@ -101,7 +85,19 @@ int main(int argc, char **argv) {
     ServiceArgs_t service_args;
     service_args.config = &config;
 
-    phxrpc::HshaServer server(config.GetHshaServerConfig(), Dispatch, &service_args);
+    auto Dispatch = [&](const phxrpc::BaseRequest &req,
+                        phxrpc::BaseResponse *const resp,
+                        phxrpc::DispatcherArgs_t *const args) {
+      $ServiceImplClass$ service(service_args);
+      $DispatcherClass$ dispatcher(service, args);
+
+      phxrpc::BaseDispatcher base_dispatcher(dispatcher.GetURIFuncMap());
+      if (!base_dispatcher.Dispatch(req, resp)) {
+        resp->SetFake(phxrpc::BaseResponse::FakeReason::DISPATCH_ERROR);
+      }
+    };
+
+    phxrpc::HshaServer server(config.GetHshaServerConfig(), Dispatch);
     server.RunForever();
 
     phxrpc::closelog();

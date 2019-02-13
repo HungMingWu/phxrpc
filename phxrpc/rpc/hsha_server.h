@@ -247,8 +247,7 @@ class WorkerPool final {
                const int uthread_stack_size,
                DataFlow *const data_flow,
                HshaServerStat *const hsha_server_stat,
-               Dispatch_t dispatch,
-               void *args);
+               Dispatch_t dispatch);
     ~WorkerPool();
 
     void NotifyEpoll();
@@ -261,7 +260,6 @@ class WorkerPool final {
     DataFlow *data_flow_{nullptr};
     HshaServerStat *hsha_server_stat_{nullptr};
     Dispatch_t dispatch_;
-    void *args_{nullptr};
     std::vector<std::unique_ptr<Worker>> worker_list_;
     size_t last_notify_idx_;
     std::mutex mutex_;
@@ -306,7 +304,7 @@ class HshaServerUnit {
                    int worker_thread_count,
                    int worker_uthread_count_per_thread,
                    int worker_uthread_stack_size,
-                   Dispatch_t dispatch, void *args);
+                   Dispatch_t dispatch);
     virtual ~HshaServerUnit();
 
     void RunFunc();
@@ -338,7 +336,7 @@ class HshaServerAcceptor final {
 
 class HshaServer final {
   public:
-    HshaServer(const HshaServerConfig &config, const Dispatch_t &dispatch, void *args,
+    HshaServer(const HshaServerConfig &config, const Dispatch_t &dispatch,
                phxrpc::BaseMessageHandlerFactoryCreateFunc msg_handler_factory_create_func =
                []()->std::unique_ptr<phxrpc::HttpMessageHandlerFactory> {
         return std::unique_ptr<phxrpc::HttpMessageHandlerFactory>(new phxrpc::HttpMessageHandlerFactory);

@@ -476,7 +476,7 @@ void Worker::WorkerLogic(void *args, BaseRequest *req, int queue_wait_time_ms) {
         HshaServerStat::TimeCost time_cost;
 
         DispatcherArgs_t dispatcher_args(pool_->hsha_server_stat_->hsha_server_monitor_,
-                worker_scheduler_, pool_->args_, args);
+                worker_scheduler_, args);
         pool_->dispatch_(*req, resp, &dispatcher_args);
 
         pool_->hsha_server_stat_->worker_time_costs_ += time_cost.Cost();
@@ -518,11 +518,10 @@ WorkerPool::WorkerPool(const int idx,
                        const int uthread_stack_size,
                        DataFlow *const data_flow,
                        HshaServerStat *const hsha_server_stat,
-                       Dispatch_t dispatch,
-                       void *args)
+                       Dispatch_t dispatch)
         : idx_(idx), scheduler_(scheduler), config_(config),
           data_flow_(data_flow), hsha_server_stat_(hsha_server_stat),
-          dispatch_(dispatch), args_(args), last_notify_idx_(0) {
+          dispatch_(dispatch), last_notify_idx_(0) {
     for (int i{0}; i < thread_count; ++i) {
         worker_list_.emplace_back(std::make_unique<Worker>(i, this, uthread_count_per_thread, uthread_stack_size));
     }
@@ -730,7 +729,7 @@ void HshaServerIO::RunForever() {
 
 HshaServerUnit::HshaServerUnit(const int idx, HshaServer *const hsha_server,
         int worker_thread_count, int worker_uthread_count_per_thread,
-        int worker_uthread_stack_size, Dispatch_t dispatch, void *args)
+        int worker_uthread_stack_size, Dispatch_t dispatch)
         : hsha_server_(hsha_server),
 #ifndef __APPLE__
           scheduler_(8 * 1024, 1000000, false),
@@ -740,7 +739,7 @@ HshaServerUnit::HshaServerUnit(const int idx, HshaServer *const hsha_server,
           worker_pool_(idx, &scheduler_, hsha_server_->config_,
                        worker_thread_count, worker_uthread_count_per_thread,
                        worker_uthread_stack_size, &data_flow_,
-                       &hsha_server_->hsha_server_stat_, dispatch, args),
+                       &hsha_server_->hsha_server_stat_, dispatch),
           hsha_server_io_(idx, &scheduler_, hsha_server_->config_,
                           &data_flow_, &hsha_server_->hsha_server_stat_,
                           &hsha_server_->hsha_server_qos_, &worker_pool_,
@@ -819,7 +818,7 @@ void HshaServerAcceptor::LoopAccept(const char *const bind_ip, const int port) {
 }
 
 
-HshaServer::HshaServer(const HshaServerConfig &config, const Dispatch_t &dispatch, void *args,
+HshaServer::HshaServer(const HshaServerConfig &config, const Dispatch_t &dispatch,
                        phxrpc::BaseMessageHandlerFactoryCreateFunc msg_handler_factory_create_func)
         : config_(&config), msg_handler_factory_create_func_(msg_handler_factory_create_func),
           hsha_server_monitor_(MonitorFactory::GetFactory()->
@@ -843,7 +842,7 @@ HshaServer::HshaServer(const HshaServerConfig &config, const Dispatch_t &dispatc
         }
         server_unit_list_.emplace_back(std::make_unique<HshaServerUnit>(i, this, (int)worker_thread_count_per_io,
                     config.GetWorkerUThreadCount(), worker_uthread_stack_size,
-                    dispatch, args));
+                    dispatch));
     }
     printf("server already started, %zu io threads %zu workers\n", io_count, worker_thread_count);
     if (config.GetWorkerUThreadCount() > 0) {
